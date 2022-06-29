@@ -1155,7 +1155,7 @@ other_shell() {
         ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
     else
         read -t 1 -p "未找到br0网卡,请直接输入本机ip:" ip
-        read -r ip
+        read -n 15 ip
         check_ip $ip
     fi
 
