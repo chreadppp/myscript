@@ -1151,10 +1151,11 @@ check_ip() {
 other_shell() {
     #获取ip并进行配置修改
     # private dns hosts for cluster
-    if ifconfig | grep en7 >/dev/null; then
+    if ifconfig | grep br0 >/dev/null; then
         ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
     else
-        read -rp "未找到br0网卡,请直接输入本机ip:" ip
+        read -t 1 -p "未找到br0网卡,请直接输入本机ip:" ip
+        read -r ip
         check_ip $ip
     fi
 
