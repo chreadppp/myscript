@@ -112,10 +112,10 @@ fatal() {
 
 # --- deploy condition check ---
 check_env() {
-    uname -i | grep x86_64 >/dev/null 2>&1 && echo -e "[INFO] hardware platform check\033[32m[OK]\033[0m" || { echo -e "[FATAL] hardware platform check\033[31m[failed]\033[0m (hardware platform must be x86_64)!" && exit 1; }
-    #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e "[INFO] system version check\033[32m[OK]\033[0m" || { echo -e "[FATAL] system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
+    uname -i | grep x86_64 >/dev/null 2>&1 && echo -e info "hardware platform check\033[32m[OK]\033[0m" || { echo -e fatal "hardware platform check\033[31m[failed]\033[0m (hardware platform must be x86_64)!" && exit 1; }
+    #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e info "system version check\033[32m[OK]\033[0m" || { echo -e fatal "system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
     [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it! \033[31m[warn]\033[0m"
-    #nvidia-smi -L > /dev/null 2>&1 && echo -e "[INFO] nvidia gpu check\033[32m[OK]\033[0m"|| { echo -e "[FATAL] nvidia gpu check\033[31m[failed]\033[0m (please check nvidia gpu driver or hardware)!" && exit 1; }
+    #nvidia-smi -L > /dev/null 2>&1 && echo -e info "nvidia gpu check\033[32m[OK]\033[0m"|| { echo -e fatal "nvidia gpu check\033[31m[failed]\033[0m (please check nvidia gpu driver or hardware)!" && exit 1; }
     ip a | grep br0 | grep inet >/dev/null 2>&1 && warn "br0 network check\033[32m[OK]\033[0m" || warn "br0 network check\033[31m[failed]\033[0m (network address shuould be set to br0)!"
 
 }
@@ -123,7 +123,7 @@ check_env() {
 # --- install docker service ---
 install_docker() {
     iptables -P INPUT ACCEPT && iptables -F && iptables -X && iptables -F -t nat && iptables -X -t nat && iptables -F -t raw && iptables -X -t raw && iptables -F -t mangle && iptables -X -t mangle
-    tar zxvf tools/docker-20.10.2.tgz -C /usr/local/bin/
+    tar zxf tools/docker-20.10.2.tgz -C /usr/local/bin/
     mkdir /etc/docker/ -p && cat >/etc/docker/daemon.json <<-EOF
 {
 "registry-mirrors": [
@@ -170,39 +170,39 @@ WantedBy=multi-user.target
 EOF
 
     # start docker service
-    $(systemctl daemon-reload && systemctl enable docker && systemctl restart docker) || $(echo "[FATAL] docker service restart failed!" && exit 1)
+    $(systemctl daemon-reload && systemctl enable docker && systemctl restart docker) || $(echo fatal "docker service restart failed!" && exit 1)
     for i in $(seq 9); do
-        echo "[INFO] waiting docker service running..." && sleep 5
+        echo info "waiting docker service running..." && sleep 5
         docker_running=$(systemctl status docker | egrep "\(running\)" | wc -l)
         if [ $docker_running -eq 1 ]; then
-            echo "[INFO] docker service started success!" && break
+            echo info "docker service started success!" && break
         elif [ $i -eq 9 ]; then
-            echo "[FATAL] docker service started timeout! exit!" && exit 1
+            echo fatal "docker service started timeout! exit!" && exit 1
         fi
     done
     # prepare k3s cmd and airgap images.
-    echo "[INFO] prepare k3s cmd and base images..."
+    echo info "prepare k3s cmd and base images..."
     mkdir -p /var/lib/rancher/k3s/agent/images/ && cp ./images/k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/ -a && cp tools/k3s /usr/local/bin/ -a && chmod 755 /usr/local/bin/k3s
     docker load -i images/k3s-airgap-images-amd64.tar && docker load -i images/base-images.tar
-    echo "[INFO] prepare k3s cmd and base images success!"
+    echo info "prepare k3s cmd and base images success!"
 }
 
 install_middleware() {
-    echo "[INFO] prepare pgsql database data..."
-    tar zxvf tools/pgsql.tgz -C /
-    echo "[INFO] prepare middleware images..."
+    echo info "prepare pgsql database data..."
+    tar zxf tools/pgsql.tgz -C /
+    echo info "prepare middleware images..."
     docker load -i images/middleware.tar
-    echo "[INFO] deploy middleware pod..."
+    echo info "deploy middleware pod..."
     kubectl create ns middleware && kubectl -n middleware create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
     kubectl apply -f manifests/middleware -n middleware
     for i in $(seq 9); do
-        echo "[INFO] waiting middleware pod running..." && sleep 20
+        echo info "waiting middleware pod running..." && sleep 20
         #pod_running=$(kubectl get pod -n middleware | grep Running | wc -l)
         pod_running=$(kubectl get pods -n middleware | grep -v Running | wc -l)
         if [ $pod_running -eq 1 ]; then
-            echo "[INFO] all middleware pod running!" && break
+            echo info "all middleware pod running!" && break
         elif [ $i -eq 9 ]; then
-            echo "[FATAL] waiting for middleware pod running timeout! exit" && exit 1
+            echo fatal "waiting for middleware pod running timeout! exit" && exit 1
         fi
     done
 }
@@ -1005,7 +1005,7 @@ install_nvidia_support() {
 
 gpu_support_k3s() {
 
-    tar zxvf tools/nvidia-airgap.tgz -C /
+    tar zxf tools/nvidia-airgap.tgz -C /
 
     mkdir /etc/kubernetes /etc/nvidia-container-runtime -p
     cat >/etc/kubernetes/scheduler-policy-config.json <<-EOF
@@ -1094,13 +1094,13 @@ Nginx_ingress() {
     dns_c="$ip minio.k3snode.local\n$ip api.k3snode.local\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
 
     for i in $(seq 9); do
-        echo "[INFO] waiting base pod running..." && sleep 20
+        echo info "waiting base pod running..." && sleep 20
         #pod_running=$(kubectl get pod -A | grep Running | wc -l)
         pod=$(kubectl get pods --all-namespaces | grep -v Running | wc -l)
         if [ $pod_running -eq 1 ]; then
-            echo "[INFO] all base pod running!" && break
+            echo info "all base pod running!" && break
         elif [ $i -eq 9 ]; then
-            echo "[FATAL] waiting for base pod running timeout! exit" && exit 1
+            echo fatal "waiting for base pod running timeout! exit" && exit 1
         fi
     done
 
