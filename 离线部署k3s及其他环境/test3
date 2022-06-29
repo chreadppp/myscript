@@ -1104,21 +1104,21 @@ Nginx_ingress() {
 }
 
 check_ip() {
-    local _check_ip=1.2.1.1
-    VALID_CHECK=$(echo $_check_ip | awk -F. '$1<=255&&$2<=255&&$3<=255&&$4<=255{print "yes"}')
-    echo $VALID_CHECK
-    echo $_check_ip | grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$"
-    if echo $_check_ip | grep -E "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$" >/dev/null; then
-        if [ $VALID_CHECK == "yes" ]; then
-            echo "IP $_check_ip  available!"
-        else
-            echo "IP $_check_ip not available!"
-            exit
+
+    CHECK_STEP1=$(echo $1 | awk -F"." '{print NF}')
+    if [ $CHECK_STEP1 -eq 4 ] || [ $CHECK_STEP1 -eq 6 ]; then
+        CHECK_STEP2=$(echo $1 | awk -F"." '{if ($1!=0 && $NF!=0) split ($0,IPNUM,".")} END \
+        { for (k in IPNUM) if (IPNUM[k]==0) print IPNUM[k]; else if (IPNUM[k]!=0 && IPNUM[k]!~/[a-z|A-Z]/ && length(IPNUM[k])<=3 &&
+IPNUM[k]<=255 && IPNUM[k]!~/^0/) print IPNUM[k]}' | wc -l)
+        if [ $CHECK_STEP2 -ne $CHECK_STEP1 ]; then
+            echo "$1不是正确合法的有效IP !"
+            exit 1
         fi
     else
-        echo "IP format error!"
-        exit
+        echo "$1不是正确合法的有效IP !"
+        exit 1
     fi
+
 }
 
 other_shell() {
@@ -1132,7 +1132,8 @@ other_shell() {
     fi
 
     check_ip $ip
-
+    
+    #修改dns配置
     dns_c="$ip minio.huawei.local\n$ip api.huawei.local\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
 
     # 安装gpu模组

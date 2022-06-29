@@ -1,9 +1,45 @@
-#需要校验的IP
-IP_ADDR=192.168.0.111
 
+log_info() {
+    echo '[INFO] ' "$@"
+}
+log_error() {
+    echo '[WARN] ' "$@" >&2
+}
+fatal() {
+    echo '[ERROR] ' "$@" >&2
+    exit 1
+}
+
+
+check_ip_() {
+
+    CHECK_STEP1=$(echo $1 | awk -F"." '{print NF}')
+    if [ $CHECK_STEP1 -eq 4 ] || [ $CHECK_STEP1 -eq 6 ]; then
+        CHECK_STEP2=$(echo $1 | awk -F"." '{if ($1!=0 && $NF!=0) split ($0,IPNUM,".")} END \
+        { for (k in IPNUM) if (IPNUM[k]==0) print IPNUM[k]; else if (IPNUM[k]!=0 && IPNUM[k]!~/[a-z|A-Z]/ && length(IPNUM[k])<=3 &&
+IPNUM[k]<=255 && IPNUM[k]!~/^0/) print IPNUM[k]}' | wc -l)
+        if [ $CHECK_STEP2 -ne $CHECK_STEP1 ]; then
+            echo "$1不是正确合法的有效IP !"
+            exit 1
+        fi
+    else
+        echo "$1不是正确合法的有效IP !"
+        exit 1
+    fi
+
+}
+
+
+ccc() {
+#需要校验的IP
+IP_ADDR=$1
+
+check_ip_ $IP_ADDR
 #获取本机IP地址列表
 machine_ips=$(ip addr | grep 'inet' | grep -v 'inet6\|127.0.0.1' | grep -v grep | awk -F '/' '{print $1}' | awk '{print $2}')
 log_info "current machine ips: ${machine_ips}"
+
+
 
 #输入的IP与本机IP进行校验
 ip_check=false
@@ -17,3 +53,8 @@ if [[ ${ip_check} != true ]]; then
   log_error "your input ip: ${IP_ADDR} is not the current IP address of this machine!"
   exit 1
 fi 
+
+}
+
+
+ccc 172.17.0.300

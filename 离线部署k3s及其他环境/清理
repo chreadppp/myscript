@@ -1,0 +1,32 @@
+
+rm -rf /etc/ceph \
+    /etc/cni \
+    /opt/cni \
+    /run/secrets/kubernetes.io \
+    /run/calico \
+    /run/flannel \
+    /var/lib/calico \
+    /var/lib/cni \
+    /var/lib/kubelet \
+    /var/log/containers \
+    /var/log/kube-audit \
+    /var/log/pods \
+    /var/run/calico \
+    /usr/libexec/kubernetes
+
+
+
+tar -zcvf  k3sbak.tgz /etc/ceph \
+    /etc/cni \
+    /opt/cni \
+    /run/secrets/kubernetes.io \
+    /run/calico \
+    /run/flannel \
+    /var/lib/calico \
+    /var/lib/cni \
+    /var/lib/kubelet \
+    /var/log/containers \
+    /var/log/kube-audit \
+    /var/log/pods \
+    /var/run/calico \
+    /usr/libexec/kubernetes
