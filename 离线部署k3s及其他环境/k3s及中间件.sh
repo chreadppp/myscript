@@ -103,13 +103,13 @@ INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --writ
 
 # --- helper functions for logs ---
 info() {
-    echo -e '\033[32m[INFO]\033[0m ' "$@"
+    echo '[INFO] ' "$@"
 }
 warn() {
-    echo -e '\033[31m[WARN]\033[0m ' "$@" >&2
+    echo '[WARN] ' "$@" >&2
 }
 fatal() {
-    echo -e '\033[31m[FAILED]\033[0m ' "$@" >&2
+    echo '[FAILED] ' "$@" >&2
     exit 1
 }
 
@@ -1070,7 +1070,7 @@ other_shell() {
         ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
     else
         ip=""
-        read -n 15 -p "未找到br0网卡,请直接输入本机ip:" ip
+        read -p "未找到br0网卡,请直接输入本机ip:" ip
         info "设置本机IP为：$ip"
         check_ip $ip
     fi
