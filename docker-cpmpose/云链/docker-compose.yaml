@@ -1,0 +1,107 @@
+version: '3.2'
+services:
+  # srv-depositchain-gateway-proxy
+  srv-depositchain-gateway-proxy:
+    image: "hub-dev.rockontrol.com/rk-cloudchain/srv-depositchain-gateway-proxy:0.0.0-eb0d709"
+    ports:
+      - "20088:80"
+    environment:
+      - TZ=Asia/Shanghai
+      - GOENV=DEV
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__DepositchainGatewayHost='https://gatewayn.ylftyth.rocktl.com'
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__IsDataEncrypted=false
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Level=debug
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Output=Always
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__PublicKeyPath=
+      - SRV_DEPOSITCHAIN_GATEWAY_PROXY__Server_Debug=true
+
+
+
+
+        - name: GOENV
+          value: DEV
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__DepositchainGatewayHost
+          value: https://gatewayn.ylftyth.rocktl.com
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__IsDataEncrypted
+          value: "false"
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Level
+          value: debug
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Output
+          value: Always
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__PublicKeyPath
+          value: ""
+        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Server_Debug
+          value: "true"
+
+
+  # rpa-redis
+  rpa-redis:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-redis:Vx.x.x"
+    volumes:
+      - "/rpadata/data/redis:/data"
+      - "/rpadata/log/redis:/var/log/redis"
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_PASSWORD=密码
+ 
+  # rpa-assets
+  rpa-assets:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-assets:Vx.x.x"
+    ports:
+      - "7000:7000"
+    environment:
+      - TZ=Asia/Shanghai
+ 
+  # rpa-file
+  rpa-file:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-file:Vx.x.x"
+    volumes:
+      - "/rpadata/file/file:/data/file"
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_PASSWORD=密码
+      - REDIS_PASSWORD=密码
+    depends_on:
+      - rpa-mysql
+      - rpa-redis
+ 
+  # rpa-web
+  rpa-web:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-web:Vx.x.x"
+    ports:
+      - "7001:7001"
+    volumes:
+      - "/rpadata/web/file:/data/file"
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_PASSWORD=密码
+      - REDIS_PASSWORD=密码
+    depends_on:
+      - rpa-file
+ 
+  # rpa-robot
+  rpa-robot:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-robot:Vx.x.x"
+    ports:
+      - "7002:7002"
+    volumes:
+      - "/rpadata/robot/file:/data/file"
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_PASSWORD=密码
+      - REDIS_PASSWORD=密码
+    depends_on:
+      - rpa-web
+ 
+  # rpa-entry-nginx
+  rpa-entry-nginx:
+    image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-nginx:Vx.x.x"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - SERVER_RESOLVER_IP=127.0.0.11
+      - SERVER_HOST=rpa.aliyun.net
+      - CLUSTER_HOST=
+    depends_on:
+      - rpa-file
