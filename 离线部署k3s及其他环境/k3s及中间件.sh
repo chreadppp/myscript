@@ -96,7 +96,8 @@ STORAGE_URL=https://storage.googleapis.com/k3s-ci-builds
 DOWNLOADER=
 ip=""
 
-#INSTALL_K3S_SKIP_DOWNLOAD=trueINSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true" --kube-proxy-arg "proxy-mode=ipvs" "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0" --kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json" --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=500" "
+INSTALL_K3S_SKIP_DOWNLOAD=true
+#INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true" --kube-proxy-arg "proxy-mode=ipvs" "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0" --kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json" --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=500" "
 
 INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true"  "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0"  --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=300" "
 
@@ -1042,7 +1043,7 @@ check_ip() {
     check_ip_rules $IP_ADDR
     #获取本机IP地址列表
     machine_ips=$(ip addr | grep 'inet' | grep -v 'inet6\|127.0.0.1' | grep -v grep | awk -F '/' '{print $1}' | awk '{print $2}')
-    info "current machine ips: ${machine_ips}"
+    #info "current machine ips: ${machine_ips}"
 
     #与本机IP进行校验
     ip_check=false
@@ -1061,7 +1062,7 @@ check_ip() {
 
 other_shell() {
     # 添加仓库域名映射
-    echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
+    cat /etc/hosts | grep 'by k3s-custom' >/dev/null 2>&1 &&  echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
     
     #获取ip并进行配置修改
     # private dns hosts for cluster
@@ -1074,8 +1075,16 @@ other_shell() {
         check_ip $ip
     fi
 
-    info "添加coredns配置!"
-    dns_c="$ip minio.k3snode.local\n$ip api.k3snode.local\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
+    domain_custom="" && read -t 120 -ep "本地域名默认为[k3snode.local]，需自定义请直接输入:" domain_custom
+
+    if [ ! $domain_custom ] ;then
+        domain_custom="k3snode.local"
+    else
+        sed -i "s/k3snode.local/$domain_custom/g" `grep 'k3snode.local' -lr manifests`
+    fi
+
+    info "添加minio与api的dns配置!"
+    dns_c="$ip minio.$domain_custom\n$ip api.$domain_custom\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
 
 }
 
