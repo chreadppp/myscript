@@ -112,7 +112,7 @@ fatal() {
 
 # --- deploy condition check ---
 check_env() {
-    uname -i | grep x86_64 >/dev/null 2>&1 && info "hardware platform check [OK]" || fatal "hardware platform check [FAILED]! (hardware platform must be x86_64)!" && exit 1; 
+    uname -i | grep x86_64 >/dev/null 2>&1 && info "hardware platform check [OK]" || fatal "hardware platform check [FAILED]! (hardware platform must be x86_64)!" ; 
     #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e info "system version check\033[32m[OK]\033[0m" || { echo -e fatal "system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
     [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it!"
     nvidia-smi -L > /dev/null 2>&1 && info "nvidia gpu check[OK]"|| warn "nvidia gpu check[failed] (if need gpu ,please check nvidia gpu driver or hardware)!" 
