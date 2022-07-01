@@ -94,29 +94,29 @@ set -o noglob
 GITHUB_URL=https://github.com/k3s-io/k3s/releases
 STORAGE_URL=https://storage.googleapis.com/k3s-ci-builds
 DOWNLOADER=
-
+ip=""
 INSTALL_K3S_SKIP_DOWNLOAD=true
 INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true" --kube-proxy-arg "proxy-mode=ipvs" "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0" --kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json" --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=500" "
 
 # --- helper functions for logs ---
 info() {
-    echo '[INFO] ' "$@"
+    echo -e '\033[32m[INFO]\033[0m ' "$@"
 }
 warn() {
-    echo '[WARN] ' "$@" >&2
+    echo -e '\033[31m[WARN]\033[0m ' "$@" >&2
 }
 fatal() {
-    echo '[ERROR] ' "$@" >&2
+    echo -e '\033[31m[FAILED]\033[0m ' "$@" >&2
     exit 1
 }
 
 # --- deploy condition check ---
 check_env() {
-    uname -i | grep x86_64 >/dev/null 2>&1 && echo -e info "hardware platform check\033[32m[OK]\033[0m" || { echo -e fatal "hardware platform check\033[31m[failed]\033[0m (hardware platform must be x86_64)!" && exit 1; }
+    uname -i | grep x86_64 >/dev/null 2>&1 && echo -e info "hardware platform check [OK]" || { fatal "hardware platform check [FAILED]! (hardware platform must be x86_64)!" && exit 1; }
     #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e info "system version check\033[32m[OK]\033[0m" || { echo -e fatal "system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
-    [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it! \033[31m[warn]\033[0m"
-    #nvidia-smi -L > /dev/null 2>&1 && echo -e info "nvidia gpu check\033[32m[OK]\033[0m"|| { echo -e fatal "nvidia gpu check\033[31m[failed]\033[0m (please check nvidia gpu driver or hardware)!" && exit 1; }
-    ip a | grep br0 | grep inet >/dev/null 2>&1 && warn "br0 network check\033[32m[OK]\033[0m" || warn "br0 network check\033[31m[failed]\033[0m (network address shuould be set to br0)!"
+    [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it!"
+    nvidia-smi -L > /dev/null 2>&1 && info "nvidia gpu check[OK]"|| { warn "nvidia gpu check[failed] (if need gpu ,please check nvidia gpu driver or hardware)!" }
+    ip a | grep br0 | grep inet >/dev/null 2>&1 && warn "br0 network check[OK]" || warn "br0 network check [failed]  (network address shuould be set to br0)!"
 
 }
 
@@ -996,103 +996,12 @@ openrc_start() {
     $SUDO ${FILE_K3S_SERVICE} restart
 }
 
-install_nvidia_support() {
-    kubectl apply -f manifests/gpushare-schd-extender.yaml
-    sleep 5 && kubectl label node --all gpushare=true && kubectl apply -f manifests/gpushare-device-plugin.yaml && kubectl apply -f manifests/nvidia-device-plugin.yaml
-}
-
-# 创建nvidia-container-runtime及k3s-gpu-share支持
-
-gpu_support_k3s() {
-
-    tar zxf tools/nvidia-airgap.tgz -C /
-
-    mkdir /etc/kubernetes /etc/nvidia-container-runtime -p
-    cat >/etc/kubernetes/scheduler-policy-config.json <<-EOF
-{
-  "kind": "Policy",
-  "apiVersion": "v1",
-  "extenders": [
-    {
-      "urlPrefix": "http://127.0.0.1:32766/gpushare-scheduler",
-      "filterVerb": "filter",
-      "bindVerb":   "bind",
-      "enableHttps": false,
-      "nodeCacheCapable": true,
-      "managedResources": [
-        {
-          "name": "aliyun.com/gpu-mem",
-          "ignoredByScheduler": false
-        }
-      ],
-      "ignorable": false
-    }
-  ]
-}
-EOF
-
-    # nvidia-container-runtime所需配置
-
-    cat >/etc/nvidia-container-runtime/config.toml <<-EOF
-disable-require = false
-#swarm-resource = "DOCKER_RESOURCE_GPU"
-#accept-nvidia-visible-devices-envvar-when-unprivileged = true
-#accept-nvidia-visible-devices-as-volume-mounts = false
-
-[nvidia-container-cli]
-#root = "/run/nvidia/driver"
-#path = "/usr/bin/nvidia-container-cli"
-environment = []
-#debug = "/var/log/nvidia-container-toolkit.log"
-#ldcache = "/etc/ld.so.cache"
-load-kmods = true
-#no-cgroups = false
-#user = "root:video"
-ldconfig = "@/sbin/ldconfig.real"
-
-[nvidia-container-runtime]
-#debug = "/var/log/nvidia-container-runtime.log"
-EOF
-
-    cat >/etc/docker/daemon.json <<-EOF
-{
-"registry-mirrors": [
-    "https://wlzfs4t4.mirror.aliyuncs.com",
-    "https://wlzfs4t4.mirror.aliyuncs.com"
-],
-
-"insecure-registries": [
-    "dockerhub.private.rockcontrol.com:5000"
-],
-
-"bip":"169.254.31.1/24",
-"max-concurrent-downloads": 10,
-"log-driver": "json-file",
-"log-level": "warn",
-"log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-    },
-"data-root": "/data/var/lib/docker",
-"default-runtime": "nvidia",
-"runtimes": {
-    "nvidia": { 
-	"path": "/usr/bin/nvidia-container-runtime", 
-	"runtimeArgs": []
-    }   
-}
-}
-EOF
-
-}
-
 #Nginx ingress install
 Nginx_ingress() {
-    echo "124.70.75.116 hub-dev.rockontrol.com" >>/etc/hosts
     kubectl create ns ingress-nginx && kubectl -n ingress-nginx create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
     kubectl apply -f manifests/nginx-ingress.yaml -n ingress-nginx
-    dns_c="$ip minio.k3snode.local\n$ip api.k3snode.local\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
-
+ 
+    # 检查k8s服务pod是否存在异常。
     for i in $(seq 9); do
         echo info "waiting base pod running..." && sleep 20
         #pod_running=$(kubectl get pod -A | grep Running | wc -l)
@@ -1149,21 +1058,22 @@ check_ip() {
 }
 
 other_shell() {
+    # 添加仓库域名映射
+    echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
+    
     #获取ip并进行配置修改
     # private dns hosts for cluster
     if ifconfig | grep br0 >/dev/null; then
         ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
     else
-        read -t 1 -p "未找到br0网卡,请直接输入本机ip:" ip
-        read -n 15 ip
+        ip=""
+        read -n 15 -p "未找到br0网卡,请直接输入本机ip:" ip
+        info "设置本机IP为：$ip"
         check_ip $ip
     fi
 
-    #修改dns配置
+    info "添加coredns配置!"
     dns_c="$ip minio.k3snode.local\n$ip api.k3snode.local\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
-
-    # 安装gpu模组
-    install_nvidia_support
 
 }
 
@@ -1209,7 +1119,6 @@ eval set -- $(escape "${INSTALL_K3S_EXEC}") $(quote "$@")
     systemd_disable
     create_env_file
     create_service_file
-    gpu_support_k3s
     service_enable_and_start
     other_shell
     install_middleware

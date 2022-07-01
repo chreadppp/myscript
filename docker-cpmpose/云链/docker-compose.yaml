@@ -17,23 +17,6 @@ services:
 
 
 
-
-        - name: GOENV
-          value: DEV
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__DepositchainGatewayHost
-          value: https://gatewayn.ylftyth.rocktl.com
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__IsDataEncrypted
-          value: "false"
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Level
-          value: debug
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Log_Output
-          value: Always
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__PublicKeyPath
-          value: ""
-        - name: SRV_DEPOSITCHAIN_GATEWAY_PROXY__Server_Debug
-          value: "true"
-
-
   # rpa-redis
   rpa-redis:
     image: "xxxx.xxxx.aliyuncs.com/xxxx/xxx-redis:Vx.x.x"
