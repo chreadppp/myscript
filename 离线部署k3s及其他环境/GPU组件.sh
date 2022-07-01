@@ -7,6 +7,7 @@ install_nvidia_support() {
     sleep 5 && kubectl label node --all  gpushare=true && kubectl  apply -f manifests/gpushare-device-plugin.yaml && kubectl  apply -f manifests/nvidia-device-plugin.yaml
 }
 
+--kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json"
 # 创建nvidia-container-runtime及k3s-gpu-share支持
 
 gpu_support_k3s() {
