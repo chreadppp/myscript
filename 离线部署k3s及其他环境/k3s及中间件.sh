@@ -1062,8 +1062,8 @@ check_ip() {
 
 other_shell() {
     # 添加仓库域名映射
-    cat /etc/hosts | grep 'by k3s-custom' >/dev/null 2>&1 &&  echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
-    
+    cat /etc/hosts | grep 'by k3s-custom' >/dev/null 2>&1 ||  echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
+
     #获取ip并进行配置修改
     # private dns hosts for cluster
     if ifconfig | grep br0 >/dev/null; then

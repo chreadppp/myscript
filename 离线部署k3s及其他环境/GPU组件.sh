@@ -1,6 +1,10 @@
 #!/bin/sh
 
+cheack_env() {
+    nvidia-smi -L > /dev/null 2>&1 && info "nvidia gpu check[OK]"|| warn "nvidia gpu check[failed] (if need gpu ,please check nvidia gpu driver or hardware)!" 
+    
 
+}
 
 install_nvidia_support() {
     kubectl  apply -f manifests/gpushare-schd-extender.yaml
@@ -138,7 +142,7 @@ ExecStart=/usr/local/bin/k3s \
         'metrics-bind-address=0.0.0.0' \
         '--kube-apiserver-arg=service-node-port-range=20000-40000' \
         '--kubelet-arg=max-pods=300' \
-        '--kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json"'\
+        '--kube-scheduler-arg=policy-config-file=/etc/kubernetes/scheduler-policy-config.json' \
 
 EOF
 

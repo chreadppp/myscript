@@ -1,0 +1,156 @@
+
+
+export https_proxy=http://218.88.119.39:10080 http_proxy=http://218.88.119.39:10080 all_proxy=socks5://218.88.119.39:10080
+
+182.139.214.23
+
+
+export https_proxy=http://172.31.0.38:7890 http_proxy=http://172.31.0.38:7890 all_proxy=socks5://172.31.0.38:7890
+
+
+export https_proxy=http://218.88.119.39:10080 http_proxy=http://218.88.119.39:10080 all_proxy=socks5://218.88.119.39:10080
+export no_proxy="localhost,127.0.0.1,localaddress,.localdomain.com,200.200..,11.11.0.0,git.querycap.com,querycap.com"
+export NO_PROXY="localhost,127.0.0.1,localaddress,.localdomain.com,200.200..,11.11.0.0,git.querycap.com,querycap.com"
+
+172.31.0.38
+
+122.9.35.156 git.querycap.com
+
+
+export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890
+
+http://minio.middleware:9000
+
+
+env:
+- name: MINIO_ACCESS_KEY
+  value: RSU0CYXX8W04NIMPA7SX
+- name: MINIO_SECRET_KEY
+  value: VD85uhB7LsoEJxUSnmKVO3w2BLWzcm6YOtLJ5BA5
+
+  s3://RSU0CYXX8W04NIMPA7SX:VD85uhB7LsoEJxUSnmKVO3w2BLWzcm6YOtLJ5BA5@minio.middleware:9000/aisys
+
+
+FROM lshxb/loongnix-server-base:8.3
+RUN yum update & yum install golang-1.18 git -y 
+RUN mkdir /opt/gopath
+ENV GOPATH=/opt/gopath
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+
+
+git clone https://git.querycap.com/cloudchain/srv-depositchain-gateway-proxy
+
+HqhmL9a-xKZ4uqiT9pDv
+
+
+
+thunder://QUFmdHA6Ly9keWdvZDE6ZHlnb2QxQGQwNzkuZHlnb2Qub3JnOjgwMDQvWyVFOSU5OCVCMyVFNSU4NSU4OSVFNyU5NCVCNSVFNSVCRCVCMXd3dy55Z2R5OC5jb21dLiVFOSVBRCU4MSVFNiU4QiU5NCVFMiU4NSVBMS5IRC43MjBwLiVFNSU5QiVCRCVFOCVBRiVBRCVFNCVCOCVBRCVFNSVBRCU5Ny5ta3ZaWg==a
+
+
+
+
+# [common] is integral section
+[common]
+# A literal address or host name for IPv6 must be enclosed
+# in square brackets, as in "[::1]:80", "[ipv6-host]:http" or "[ipv6-host%zone]:80"
+bind_addr = 0.0.0.0
+bind_port = 7000
+bind_udp_port = 7000
+# udp port used for kcp protocol, it can be same with 'bind_port'
+# if not set, kcp is disabled in frps
+kcp_bind_port = 7001
+# if you want to configure or reload frps by dashboard, dashboard_port must be set
+dashboard_port = 7500
+# dashboard assets directory(only for debug mode)
+dashboard_user = admin
+dashboard_pwd = xll52177
+# assets_dir = ./static
+vhost_http_port = 7080
+vhost_https_port = 7443
+# console or real logFile path like ./frps.log
+log_file = ./frps.log
+# debug, info, warn, error
+log_level = error
+log_max_days = 2
+# auth token
+token = xll52177
+# It is convenient to use subdomain configure for http、https type when many people use one frps server together.
+subdomain_host = static.lyhepj.cn
+# only allow frpc to bind ports you list, if you set nothing, there won't be any limit
+#allow_ports = 1-65535
+# pool_count in each proxy will change to max_pool_count if they exceed the maximum value
+max_pool_count = 100
+# if tcp stream multiplexing is used, default is true
+tcp_mux = true
+~                    
+
+
+
+webapp-aisys http://ai-evc.ocr.rockontrol.com:80/
+srv-lb-ai http://api.ocr.rockontrol.com:80/lb-ai
+srv-api-auth http://api.ocr.rockontrol.com:80/api-auth
+srv-bff-ai-manager http://api.ocr.rockontrol.com:80/bff-ai-manager
+srv-bff-oc http://api.ocr.rockontrol.com:80/bff-oc
+srv-event-manager http://api.ocr.rockontrol.com:80/event-manager
+webapp http://ai-operation.ocr.rockontrol.com:80/
+webapp-cloud http://ai-auth.ocr.rockontrol.com:80/
+webapp-idp http://ai-cloud.ocr.rockontrol.com:80/
+
+
+配置中心、运营平台、权限管理、OCR应用平台
+
+
+
+srv-core-ocr           http://api.ocr.rockontrol.com:80/core-ocr
+srv-lb-ai              http://api.ocr.rockontrol.com:80/lb-ai
+srv-api-auth           http://api.ocr.rockontrol.com:80/api-auth
+srv-bff-oc             http://api.ocr.rockontrol.com:80/bff-oc           
+webapp-idp             http://ai-cloud.ocr.rockontrol.com:80/            #配置中心
+webapp                 http://ai-operation.ocr.rockontrol.com:80/        #运营中心
+webapp-cloud           http://ai-auth.ocr.rockontrol.com:80/             #运营中心
+srv-bff-core-ocr       http://api.ocr.rockontrol.com:80/bff-core-ocr
+srv-bff-ai-manager     http://api.ocr.rockontrol.com:80/bff-ai-manager
+
+webapp-ocr             http://ocr.rockontrol.com:80/                     #OCR应用平台
+
+
+
+srv=srv-ai-center      
+srv=srv-configuration  
+srv=srv-event-center   
+srv=srv-notify         
+srv=srv-statistic      
+srv=srv-subscribe      
+srv=srv-compound       
+srv=srv-decoder-center 
+srv=srv-storage        
+srv=srv-device-hub     
+srv=srv-cloud-log      
+srv=srv-api-auth       
+
+kubectl get pods --all-namespaces -l srv=srv-ai-center      -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-configuration  -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-event-center   -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-notify         -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-statistic      -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-subscribe      -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-compound       -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-decoder-center -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-storage        -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-device-hub     -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-cloud-log      -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+kubectl get pods --all-namespaces -l srv=srv-api-auth       -o jsonpath='{.items[0].metadata.namespace} {.items[0].metadata.name} {.items[0].metadata.labels.srv}' |awk '{print"kubectl exec -i -n "$1" "$2" -- ./"$3" migrate"}'|sh
+
+ports:
+- port: 80
+  protocol: TCP
+  targetPort: 9090
+selector:
+  k8s-app: k8s-dashboard
+sessionAffinity: None
+type: ClusterIP
+
+
+
+
