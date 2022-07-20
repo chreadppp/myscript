@@ -94,12 +94,10 @@ set -o noglob
 GITHUB_URL=https://github.com/k3s-io/k3s/releases
 STORAGE_URL=https://storage.googleapis.com/k3s-ci-builds
 DOWNLOADER=
-ip=""
 
 INSTALL_K3S_SKIP_DOWNLOAD=true
 #INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true" --kube-proxy-arg "proxy-mode=ipvs" "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0" --kube-scheduler-arg="policy-config-file=/etc/kubernetes/scheduler-policy-config.json" --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=500" "
-
-INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true"  "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0"  --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=300" "
+INSTALL_K3S_EXEC="server --disable=traefik   --data-dir /data/rancher/k3s --write-kubeconfig /root/.kube/config  --docker --kube-apiserver-arg="authorization-mode=Node,RBAC" --kube-apiserver-arg="allow-privileged=true" --kube-proxy-arg  "masquerade-all=true" --kube-proxy-arg "metrics-bind-address=0.0.0.0"  --kube-apiserver-arg="service-node-port-range=20000-40000" --kubelet-arg="max-pods=500" "
 
 # --- helper functions for logs ---
 info() {
@@ -109,35 +107,33 @@ warn() {
     echo '[WARN] ' "$@" >&2
 }
 fatal() {
-    echo '[FAILED] ' "$@" >&2
+    echo '[ERROR] ' "$@" >&2
     exit 1
 }
 
 # --- deploy condition check ---
 check_env() {
-    uname -i | grep x86_64 >/dev/null 2>&1 && info "hardware platform check [OK]" || fatal "hardware platform check [FAILED]! (hardware platform must be x86_64)!" ; 
-    #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e info "system version check\033[32m[OK]\033[0m" || { echo -e fatal "system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
-    [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it!"
-    nvidia-smi -L > /dev/null 2>&1 && info "nvidia gpu check[OK]"|| warn "nvidia gpu check[failed] (if need gpu ,please check nvidia gpu driver or hardware)!" 
-    ip a | grep br0 | grep inet >/dev/null 2>&1 && warn "br0 network check[OK]" || warn "br0 network check [failed]  (network address shuould be set to br0)!"
+    uname -i | grep x86_64 >/dev/null 2>&1 && echo -e "[INFO] hardware platform check\033[32m[OK]\033[0m" || { echo -e "[FATAL] hardware platform check\033[31m[failed]\033[0m (hardware platform must be x86_64)!" && exit 1; }
+    #egrep 18.04 /etc/issue > /dev/null 2>&1  &&  echo -e "[INFO] system version check\033[32m[OK]\033[0m" || { echo -e "[FATAL] system version check\033[31m[failed]\033[0m (system version must be ubuntu 18.04)!" && exit 1; }
+    [ -d /data/ ] || warn "dir /data not exists! please mkdir or mount it! \033[31m[warn]\033[0m"
+    #nvidia-smi -L > /dev/null 2>&1 && echo -e "[INFO] nvidia gpu check\033[32m[OK]\033[0m"|| { echo -e "[FATAL] nvidia gpu check\033[31m[failed]\033[0m (please check nvidia gpu driver or hardware)!" && exit 1; }
+    ip a | grep br0 | grep inet >/dev/null 2>&1 && warn "br0 network check\033[32m[OK]\033[0m" || warn "br0 network check\033[31m[failed]\033[0m (network address shuould be set to br0)!"
 
 }
 
 # --- install docker service ---
 install_docker() {
     iptables -P INPUT ACCEPT && iptables -F && iptables -X && iptables -F -t nat && iptables -X -t nat && iptables -F -t raw && iptables -X -t raw && iptables -F -t mangle && iptables -X -t mangle
-    tar zxf tools/docker-20.10.2.tgz -C /usr/local/bin/
+    tar zxvf tools/docker-20.10.2.tgz -C /usr/local/bin/
     mkdir /etc/docker/ -p && cat >/etc/docker/daemon.json <<-EOF
 {
 "registry-mirrors": [
     "https://wlzfs4t4.mirror.aliyuncs.com",
     "https://wlzfs4t4.mirror.aliyuncs.com"
 ],
-
 "insecure-registries": [
     "dockerhub.private.rockcontrol.com:5000"
 ],
-
 "bip":"169.254.31.1/24",
 "max-concurrent-downloads": 10,
 "log-driver": "json-file",
@@ -154,7 +150,6 @@ EOF
 [Unit]
 Description=Docker Application Container Engine
 Documentation=http://docs.docker.io
-
 [Service]
 Environment="PATH=/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin"
 ExecStart=/usr/local/bin/dockerd 
@@ -167,45 +162,44 @@ LimitNPROC=infinity
 LimitCORE=infinity
 Delegate=yes
 KillMode=process
-
 [Install]
 WantedBy=multi-user.target
 EOF
 
     # start docker service
-    $(systemctl daemon-reload && systemctl enable docker && systemctl restart docker) || $(echo fatal "docker service restart failed!" && exit 1)
+    $(systemctl daemon-reload && systemctl enable docker && systemctl restart docker) || $(echo "[FATAL] docker service restart failed!" && exit 1)
     for i in $(seq 9); do
-        echo info "waiting docker service running..." && sleep 5
+        echo "[INFO] waiting docker service running..." && sleep 5
         docker_running=$(systemctl status docker | egrep "\(running\)" | wc -l)
         if [ $docker_running -eq 1 ]; then
-            echo info "docker service started success!" && break
+            echo "[INFO] docker service started success!" && break
         elif [ $i -eq 9 ]; then
-            echo fatal "docker service started timeout! exit!" && exit 1
+            echo "[FATAL] docker service started timeout! exit!" && exit 1
         fi
     done
     # prepare k3s cmd and airgap images.
-    echo info "prepare k3s cmd and base images..."
+    echo "[INFO] prepare k3s cmd and base images..."
     mkdir -p /var/lib/rancher/k3s/agent/images/ && cp ./images/k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/ -a && cp tools/k3s /usr/local/bin/ -a && chmod 755 /usr/local/bin/k3s
     docker load -i images/k3s-airgap-images-amd64.tar && docker load -i images/base-images.tar
-    echo info "prepare k3s cmd and base images success!"
+    echo "[INFO] prepare k3s cmd and base images success!"
 }
 
 install_middleware() {
-    echo info "prepare pgsql database data..."
-    tar zxf tools/pgsql.tgz -C /
-    echo info "prepare middleware images..."
+    echo "[INFO] prepare pgsql database data..."
+    tar zxvf tools/pgsql.tgz -C /
+    echo "[INFO] prepare middleware images..."
     docker load -i images/middleware.tar
-    echo info "deploy middleware pod..."
+    echo "[INFO] deploy middleware pod..."
     kubectl create ns middleware && kubectl -n middleware create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
     kubectl apply -f manifests/middleware -n middleware
     for i in $(seq 9); do
-        echo info "waiting middleware pod running..." && sleep 20
+        echo "[INFO] waiting middleware pod running..." && sleep 20
         #pod_running=$(kubectl get pod -n middleware | grep Running | wc -l)
         pod_running=$(kubectl get pods -n middleware | grep -v Running | wc -l)
         if [ $pod_running -eq 1 ]; then
-            echo info "all middleware pod running!" && break
+            echo "[INFO] all middleware pod running!" && break
         elif [ $i -eq 9 ]; then
-            echo fatal "waiting for middleware pod running timeout! exit" && exit 1
+            echo "[FATAL] waiting for middleware pod running timeout! exit" && exit 1
         fi
     done
 }
@@ -724,28 +718,22 @@ create_killall() {
     $SUDO tee ${KILLALL_K3S_SH} >/dev/null <<\EOF
 #!/bin/sh
 [ $(id -u) -eq 0 ] || exec sudo $0 $@
-
 for bin in /var/lib/rancher/k3s/data/**/bin/; do
     [ -d $bin ] && export PATH=$PATH:$bin:$bin/aux
 done
-
 set -x
-
 for service in /etc/systemd/system/k3s*.service; do
     [ -s $service ] && systemctl stop $(basename $service)
 done
-
 for service in /etc/init.d/k3s*; do
     [ -x $service ] && $service stop
 done
-
 pschildren() {
     ps -e -o ppid= -o pid= | \
     sed -e 's/^\s*//g; s/\s\s*/\t/g;' | \
     grep -w "^$1" | \
     cut -f2
 }
-
 pstree() {
     for pid in $@; do
         echo $pid
@@ -754,7 +742,6 @@ pstree() {
         done
     done
 }
-
 killtree() {
     kill -9 $(
         { set +x; } 2>/dev/null;
@@ -762,13 +749,10 @@ killtree() {
         set -x;
     ) 2>/dev/null
 }
-
 getshims() {
     ps -e -o pid= -o args= | sed -e 's/^ *//; s/\s\s*/\t/;' | grep -w 'k3s/data/[^/]*/bin/containerd-shim' | cut -f1
 }
-
 killtree $({ set +x; } 2>/dev/null; getshims; set -x)
-
 do_unmount_and_remove() {
     set +x
     while read -r _ path _; do
@@ -776,16 +760,13 @@ do_unmount_and_remove() {
     done < /proc/self/mounts | sort -r | xargs -r -t -n 1 sh -c 'umount "$0" && rm -rf "$0"'
     set -x
 }
-
 do_unmount_and_remove '/run/k3s'
 do_unmount_and_remove '/var/lib/rancher/k3s'
 do_unmount_and_remove '/var/lib/kubelet/pods'
 do_unmount_and_remove '/var/lib/kubelet/plugins'
 do_unmount_and_remove '/run/netns/cni-'
-
 # Remove CNI namespaces
 ip netns show 2>/dev/null | grep cni- | xargs -r -t -n 1 ip netns delete
-
 # Delete network interface(s) that match 'master cni0'
 ip link show 2>/dev/null | grep 'master cni0' | while read ignore iface ignore; do
     iface=${iface%%@*}
@@ -809,9 +790,7 @@ create_uninstall() {
 #!/bin/sh
 set -x
 [ \$(id -u) -eq 0 ] || exec sudo \$0 \$@
-
 ${KILLALL_K3S_SH}
-
 if command -v systemctl; then
     systemctl disable ${SYSTEM_NAME}
     systemctl reset-failed ${SYSTEM_NAME}
@@ -820,26 +799,21 @@ fi
 if command -v rc-update; then
     rc-update delete ${SYSTEM_NAME} default
 fi
-
 rm -f ${FILE_K3S_SERVICE}
 rm -f ${FILE_K3S_ENV}
-
 remove_uninstall() {
     rm -f ${UNINSTALL_K3S_SH}
 }
 trap remove_uninstall EXIT
-
 if (ls ${SYSTEMD_DIR}/k3s*.service || ls /etc/init.d/k3s*) >/dev/null 2>&1; then
     set +x; echo 'Additional k3s services installed, skipping uninstall of k3s'; set -x
     exit
 fi
-
 for cmd in kubectl crictl ctr; do
     if [ -L ${BIN_DIR}/\$cmd ]; then
         rm -f ${BIN_DIR}/\$cmd
     fi
 done
-
 rm -rf /etc/rancher/k3s
 rm -rf /run/k3s
 rm -rf /run/flannel
@@ -847,7 +821,6 @@ rm -rf /var/lib/rancher/k3s
 rm -rf /var/lib/kubelet
 rm -f ${BIN_DIR}/k3s
 rm -f ${KILLALL_K3S_SH}
-
 if type yum >/dev/null 2>&1; then
     yum remove -y k3s-selinux
     rm -f /etc/yum.repos.d/rancher-k3s-common*.repo
@@ -889,10 +862,8 @@ Description=Lightweight Kubernetes
 Documentation=https://k3s.io
 Wants=network-online.target
 After=network-online.target
-
 [Install]
 WantedBy=multi-user.target
-
 [Service]
 Type=${SYSTEMD_TYPE}
 EnvironmentFile=-/etc/default/%N
@@ -914,7 +885,6 @@ ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
 ExecStart=${BIN_DIR}/k3s \\
     ${CMD_K3S_EXEC}
-
 EOF
 }
 
@@ -925,29 +895,23 @@ create_openrc_service_file() {
     info "openrc: Creating service file ${FILE_K3S_SERVICE}"
     $SUDO tee ${FILE_K3S_SERVICE} >/dev/null <<EOF
 #!/sbin/openrc-run
-
 depend() {
     after network-online
     want cgroups
 }
-
 start_pre() {
     rm -f /tmp/k3s.*
 }
-
 supervisor=supervise-daemon
 name=${SYSTEM_NAME}
 command="${BIN_DIR}/k3s"
 command_args="$(escape_dq "${CMD_K3S_EXEC}")
     >>${LOG_FILE} 2>&1"
-
 output_log=${LOG_FILE}
 error_log=${LOG_FILE}
-
 pidfile="/var/run/${SYSTEM_NAME}.pid"
 respawn_delay=5
 respawn_max=0
-
 set -o allexport
 if [ -f /etc/environment ]; then source /etc/environment; fi
 if [ -f ${FILE_K3S_ENV} ]; then source ${FILE_K3S_ENV}; fi
@@ -999,122 +963,48 @@ openrc_start() {
     $SUDO ${FILE_K3S_SERVICE} restart
 }
 
+
+
 #Nginx ingress install
 Nginx_ingress() {
     kubectl create ns ingress-nginx && kubectl -n ingress-nginx create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
     kubectl apply -f manifests/nginx-ingress.yaml -n ingress-nginx
- 
-    # 检查k8s服务pod是否存在异常。
+
     for i in $(seq 9); do
-        echo info "waiting base pod running..." && sleep 20
+        echo "[INFO] waiting base pod running..." && sleep 20
         #pod_running=$(kubectl get pod -A | grep Running | wc -l)
         pod=$(kubectl get pods --all-namespaces | grep -v Running | wc -l)
         if [ $pod_running -eq 1 ]; then
-            echo info "all base pod running!" && break
+            echo "[INFO] all base pod running!" && break
         elif [ $i -eq 9 ]; then
-            echo fatal "waiting for base pod running timeout! exit" && exit 1
+            echo "[FATAL] waiting for base pod running timeout! exit" && exit 1
         fi
     done
 
 }
 
-check_ip_rules() {
 
-    CHECK_STEP1=$(echo $1 | awk -F"." '{print NF}')
-    if [ $CHECK_STEP1 -eq 4 ] || [ $CHECK_STEP1 -eq 6 ]; then
-        CHECK_STEP2=$(echo $1 | awk -F"." '{if ($1!=0 && $NF!=0) split ($0,IPNUM,".")} END \
-        { for (k in IPNUM) if (IPNUM[k]==0) print IPNUM[k]; else if (IPNUM[k]!=0 && IPNUM[k]!~/[a-z|A-Z]/ && length(IPNUM[k])<=3 &&
-IPNUM[k]<=255 && IPNUM[k]!~/^0/) print IPNUM[k]}' | wc -l)
-        if [ $CHECK_STEP2 -ne $CHECK_STEP1 ]; then
-            echo "$1不是正确合法的有效IP !"
-            exit 1
-        fi
-    else
-        echo "$1不是正确合法的有效IP !"
-        exit 1
-    fi
-
-}
-
-check_ip() {
-    #需要校验的IP
-    IP_ADDR=$1
-
-    check_ip_rules $IP_ADDR
-    #获取本机IP地址列表
-    machine_ips=$(ip addr | grep 'inet' | grep -v 'inet6\|127.0.0.1' | grep -v grep | awk -F '/' '{print $1}' | awk '{print $2}')
-    #info "current machine ips: ${machine_ips}"
-
-    #与本机IP进行校验
-    ip_check=false
-    for machine_ip in ${machine_ips}; do
-        if [[ "X${machine_ip}" == "X${IP_ADDR}" ]]; then
-            ip_check=true
-        fi
-    done
-
-    if [[ ${ip_check} != true ]]; then
-        fatal "your input ip: ${IP_ADDR} is not the current IP address of this machine!"
-        exit 1
-    fi
-
-}
-
-other_shell() {
-    # 添加仓库域名映射
-    cat /etc/hosts | grep 'by k3s-custom' >/dev/null 2>&1 ||  echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts
-
-    #获取ip并进行配置修改
-    # private dns hosts for cluster
-    if ifconfig | grep br0 >/dev/null; then
-        ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
-    else
-        ip=""
-        read -p "未找到br0网卡,请直接输入本机ip:" ip
-        info "设置本机IP为：$ip"
-        check_ip $ip
-    fi
-
-    domain_custom="" && read -t 120 -ep "本地域名默认为[k3snode.local]，需自定义请直接输入:" domain_custom
-
-    if [ ! $domain_custom ] ;then
-        domain_custom="k3snode.local"
-    else
-        sed -i "s/k3snode.local/$domain_custom/g" `grep 'k3snode.local' -lr manifests`
-    fi
-
-    info "添加minio与api的dns配置!"
-    dns_c="$ip minio.$domain_custom\n$ip api.$domain_custom\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
-
-}
 
 # --- startup systemd or openrc service ---
 service_enable_and_start() {
     if [ -f "/proc/cgroups" ] && [ "$(grep memory /proc/cgroups | while read -r n n n enabled; do echo $enabled; done)" -eq 0 ]; then
         info 'Failed to find memory cgroup, you may need to add "cgroup_memory=1 cgroup_enable=memory" to your linux cmdline (/boot/cmdline.txt on a Raspberry Pi)'
     fi
-
     [ "${INSTALL_K3S_SKIP_ENABLE}" = true ] && return
-
     [ "${HAS_SYSTEMD}" = true ] && systemd_enable
     [ "${HAS_OPENRC}" = true ] && openrc_enable
-
     [ "${INSTALL_K3S_SKIP_START}" = true ] && return
-
     POST_INSTALL_HASHES=$(get_installed_hashes)
     if [ "${PRE_INSTALL_HASHES}" = "${POST_INSTALL_HASHES}" ] && [ "${INSTALL_K3S_FORCE_RESTART}" != true ]; then
         info 'No change detected so skipping service start'
         return
     fi
-
     [ "${HAS_SYSTEMD}" = true ] && systemd_start
     [ "${HAS_OPENRC}" = true ] && openrc_start
     return 0
 }
-
 # --- re-evaluate args to include env command ---
 eval set -- $(escape "${INSTALL_K3S_EXEC}") $(quote "$@")
-
 # --- run the install process --
 {
     check_env
@@ -1131,7 +1021,6 @@ eval set -- $(escape "${INSTALL_K3S_EXEC}") $(quote "$@")
     create_env_file
     create_service_file
     service_enable_and_start
-    other_shell
     install_middleware
     Nginx_ingress
 }
