@@ -1,114 +1,32 @@
 #!/bin/sh
 
+ipip() {
 
-# 创建nvidia-container-runtime及k3s-gpu-share支持
+    if cat /etc/hosts | grep 'by k3s-custom' >/dev/null 2>&1 ;then echo "设置hosts.." ;else  echo "124.70.75.116 hub-dev.rockontrol.com #by k3s-custom" >>/etc/hosts ;fi
 
-gpu_support_k3s() {
+#获取ip并进行配置修改
+    # private dns hosts for cluster
+    if ifconfig | grep br0 >/dev/null; then
+        ip=$(ip a | grep br0 | grep inet | awk -F ' ' '{print $2}' | cut -d "/" -f1)
+    else
+        ip=""
+        read -p "未找到br0网卡,请直接输入本机ip:" ip
+        info "设置本机IP为：$ip"
+        check_ip $ip
+    fi
 
+    domain_custom="" && read -t 120 -ep "本地域名默认为[k3snode.local]，需自定义请直接输入:" domain_custom
 
-    tar zxvf tools/nvidia-airgap.tgz -C /
+    if [ ! $domain_custom ] ;then
+        domain_custom="k3snode.local"
+    else
+        sed -i "s/k3snode.local/$domain_custom/g" `grep 'k3snode.local' -lr manifests`
+    fi
 
-    mkdir /etc/kubernetes /etc/nvidia-container-runtime -p
-    cat > /etc/kubernetes/scheduler-policy-config.json <<-EOF
-{
-  "kind": "Policy",
-  "apiVersion": "v1",
-  "extenders": [
-    {
-      "urlPrefix": "http://127.0.0.1:32766/gpushare-scheduler",
-      "filterVerb": "filter",
-      "bindVerb":   "bind",
-      "enableHttps": false,
-      "nodeCacheCapable": true,
-      "managedResources": [
-        {
-          "name": "aliyun.com/gpu-mem",
-          "ignoredByScheduler": false
-        }
-      ],
-      "ignorable": false
-    }
-  ]
-}
-EOF
-
-# nvidia-container-runtime所需配置
-
-    cat > /etc/nvidia-container-runtime/config.toml <<-EOF
-disable-require = false
-#swarm-resource = "DOCKER_RESOURCE_GPU"
-#accept-nvidia-visible-devices-envvar-when-unprivileged = true
-#accept-nvidia-visible-devices-as-volume-mounts = false
-
-[nvidia-container-cli]
-#root = "/run/nvidia/driver"
-#path = "/usr/bin/nvidia-container-cli"
-environment = []
-#debug = "/var/log/nvidia-container-toolkit.log"
-#ldcache = "/etc/ld.so.cache"
-load-kmods = true
-#no-cgroups = false
-#user = "root:video"
-ldconfig = "@/sbin/ldconfig.real"
-
-[nvidia-container-runtime]
-#debug = "/var/log/nvidia-container-runtime.log"
-EOF
-
-
-    cat > /etc/docker/daemon.json <<-EOF 
-{
-"registry-mirrors": [
-    "https://wlzfs4t4.mirror.aliyuncs.com",
-    "https://wlzfs4t4.mirror.aliyuncs.com"
-],
-
-"insecure-registries": [
-    "dockerhub.private.rockcontrol.com:5000"
-],
-
-"bip":"169.254.31.1/24",
-"max-concurrent-downloads": 10,
-"log-driver": "json-file",
-"log-level": "warn",
-"log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-    },
-"data-root": "/data/var/lib/docker",
-"default-runtime": "nvidia",
-"runtimes": {
-    "nvidia": { 
-	"path": "/usr/bin/nvidia-container-runtime", 
-	"runtimeArgs": []
-    }   
-}
-}
-EOF
+    info "添加minio与api的dns配置!"
+    dns_c="$ip minio.$domain_custom\n$ip api.$domain_custom\n" && kubectl patch cm coredns -n kube-system --type=json -p="[{\"op\":\"add\", \"path\":\"/data/NodeHosts\", \"value\":\"$dns_c\"}]"
 
 }
 
 
-install_nvidia_support() {
-    kubectl apply -f manifests/gpushare-schd-extender.yaml
-    sleep 5 && kubectl label node --all gpushare=true && kubectl apply -f manifests/gpushare-device-plugin.yaml && kubectl apply -f manifests/nvidia-device-plugin.yaml
-}
-
-
-
-
-
-gpu_support_k3s
-
-
-echo "重启k3s环境。"
-systemctl daemon-reload 
-systemctl stop k3s
-systemctl restart docker
-systemctl start k3s
-
-echo "添加gpu组件支持。"
-
-install_nvidia_support
-
-echo "完成！"
+ipip
