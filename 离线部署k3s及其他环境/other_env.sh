@@ -45,4 +45,4 @@ echo "可运行[type _init_completion]测试。"
 }
 
 
-ipip
+$@
