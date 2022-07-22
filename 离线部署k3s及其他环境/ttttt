@@ -185,6 +185,9 @@ type: ClusterIP
         'metrics-bind-address=0.0.0.0' \
         '--kube-apiserver-arg=service-node-port-range=20000-40000' \
         '--kubelet-arg=max-pods=500' \
-~                                           
+
+
+
+
 
 
