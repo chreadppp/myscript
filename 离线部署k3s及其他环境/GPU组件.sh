@@ -86,6 +86,9 @@ EOF
 }
 EOF
 
+    sed -i '$s#.*#        '\''policy-config-file=/etc/kubernetes/scheduler-policy-config.json'\'' #'   /etc/systemd/system/k3s.service
+
+
 }
 
 
