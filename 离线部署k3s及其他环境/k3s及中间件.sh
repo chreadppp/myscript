@@ -184,12 +184,22 @@ EOF
     echo "[INFO] prepare k3s cmd and base images success!"
 }
 
+
+
 install_middleware() {
+
+
+
     echo "[INFO] prepare pgsql database data..."
     tar zxvf tools/pgsql.tgz -C /
     echo "[INFO] prepare middleware images..."
     docker load -i images/middleware.tar
     echo "[INFO] deploy middleware pod..."
+
+    free_mem_m=$(free -m|grep Mem|awk '{print$3}')
+
+    if [ $free_mem_m -gt 3000 ];then
+
     kubectl create ns middleware && kubectl -n middleware create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
     kubectl apply -f manifests/middleware -n middleware
     for i in $(seq 9); do
@@ -202,6 +212,14 @@ install_middleware() {
             echo "[FATAL] waiting for middleware pod running timeout! exit" && exit 1
         fi
     done
+
+else
+echo "[INFO] 内存不足，放弃中间件安装"
+fi
+
+
+
+
 }
 
 # --- disable SELinux
@@ -1022,6 +1040,6 @@ eval set -- $(escape "${INSTALL_K3S_EXEC}") $(quote "$@")
     create_env_file
     create_service_file
     service_enable_and_start
-    install_middleware
     Nginx_ingress
+    install_middleware
 }
