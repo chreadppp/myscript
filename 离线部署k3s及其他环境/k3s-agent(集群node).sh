@@ -12,7 +12,7 @@ read -p  "master节点的IP(例如：192.168.1.10)： " MASTER_K3S_IP
 echo "默认master端口6443。"
 echo "集群token，默认位置「/var/lib/rancher/k3s/server/node-token」。"
 echo "例如「K1042e2f8e353b9409472c1e0cca8457abe184dc7be3f0805109e92c50c193ceb42::node:c83acbf89a7de7026d6f6928dc270028」："
-read -p "集群token: "
+read -p "集群token: " K3S_TOKEN
 INSTALL_K3S_SKIP_DOWNLOAD=true
 
 K3S_URL=https://$MASTER_K3S_IP:6443
