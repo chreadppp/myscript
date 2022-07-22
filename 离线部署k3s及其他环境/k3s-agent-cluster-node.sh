@@ -2,13 +2,12 @@
 set -e
 set -o noglob
 
-
 GITHUB_URL=https://github.com/k3s-io/k3s/releases
 STORAGE_URL=https://storage.googleapis.com/k3s-ci-builds
 DOWNLOADER=
 
 K3S_TOKEN=
-read -p  "master节点的IP(例如：192.168.1.10)： " MASTER_K3S_IP
+read -p "master节点的IP(例如：192.168.1.10)： " MASTER_K3S_IP
 echo "默认master端口6443。"
 echo "集群token，默认位置「/var/lib/rancher/k3s/server/node-token」。"
 echo "例如「K1042e2f8e353b9409472c1e0cca8457abe184dc7be3f0805109e92c50c193ceb42::node:c83acbf89a7de7026d6f6928dc270028」："
@@ -106,10 +105,7 @@ EOF
     echo "[INFO] prepare k3s cmd and base images success!"
 }
 
-
-
 install_middleware() {
-
 
     echo "[INFO] prepare pgsql database data..."
     tar zxvf tools/pgsql.tgz -C /
@@ -117,27 +113,26 @@ install_middleware() {
     docker load -i images/middleware.tar
     echo "[INFO] deploy middleware pod..."
 
-    free_mem_m=$(free -m|grep Mem|awk '{print$3}')
+    free_mem_m=$(free -m | grep Mem | awk '{print$3}')
 
-    if [ $free_mem_m -gt 3000 ];then
+    if [ $free_mem_m -gt 3000 ]; then
 
-    kubectl create ns middleware && kubectl -n middleware create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
-    kubectl apply -f manifests/middleware -n middleware
-    for i in $(seq 9); do
-        echo "[INFO] waiting middleware pod running..." && sleep 20
-        #pod_running=$(kubectl get pod -n middleware | grep Running | wc -l)
-        pod_running=$(kubectl get pods -n middleware | grep -v Running | wc -l)
-        if [ $pod_running -eq 1 ]; then
-            echo "[INFO] all middleware pod running!" && break
-        elif [ $i -eq 9 ]; then
-            echo "[FATAL] waiting for middleware pod running timeout! exit" && exit 1
-        fi
-    done
+        kubectl create ns middleware && kubectl -n middleware create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
+        kubectl apply -f manifests/middleware -n middleware
+        for i in $(seq 9); do
+            echo "[INFO] waiting middleware pod running..." && sleep 20
+            #pod_running=$(kubectl get pod -n middleware | grep Running | wc -l)
+            pod_running=$(kubectl get pods -n middleware | grep -v Running | wc -l)
+            if [ $pod_running -eq 1 ]; then
+                echo "[INFO] all middleware pod running!" && break
+            elif [ $i -eq 9 ]; then
+                echo "[FATAL] waiting for middleware pod running timeout! exit" && exit 1
+            fi
+        done
 
-else
-echo "[INFO] 内存不足，放弃中间件安装"
-fi
-
+    else
+        echo "[INFO] 内存不足，放弃中间件安装"
+    fi
 
 }
 
@@ -880,7 +875,7 @@ get_installed_hashes() {
 # --- enable and start systemd service ---
 systemd_enable() {
     info "systemd: Enabling ${SYSTEM_NAME} unit"
-    echo " " >> /etc/systemd/system/k3s-agent.service
+    echo " " >>/etc/systemd/system/k3s-agent.service
     $SUDO systemctl enable ${FILE_K3S_SERVICE} >/dev/null
     $SUDO systemctl daemon-reload >/dev/null
 }
@@ -900,11 +895,6 @@ openrc_start() {
     info "openrc: Starting ${SYSTEM_NAME}"
     $SUDO ${FILE_K3S_SERVICE} restart
 }
-
-
-
-
-
 
 # --- startup systemd or openrc service ---
 service_enable_and_start() {

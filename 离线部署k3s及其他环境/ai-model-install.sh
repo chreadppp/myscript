@@ -997,8 +997,6 @@ openrc_start() {
     $SUDO ${FILE_K3S_SERVICE} restart
 }
 
-
-
 #Nginx ingress install
 Nginx_ingress() {
     kubectl create ns ingress-nginx && kubectl -n ingress-nginx create secret docker-registry huawei-registry --docker-server=hub-dev.rockontrol.com --docker-username=pull-only --docker-password=h0nyhkLmNdZ9FWPc
@@ -1016,8 +1014,6 @@ Nginx_ingress() {
     done
 
 }
-
-
 
 # --- startup systemd or openrc service ---
 service_enable_and_start() {

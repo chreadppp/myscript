@@ -41,8 +41,26 @@ else
 echo "k8s自动补全命令依赖bash-completion，可能未安装！"
 echo "可运行[type _init_completion]测试。"
 
-
 }
+
+
+
+
+
+syst_disable_update() {
+systemctl kill --kill-who=all apt-daily.service
+systemctl stop apt-daily.timer
+systemctl stop apt-daily-upgrade.timer
+systemctl stop apt-daily.service
+systemctl stop apt-daily-upgrade.service
+systemctl disable apt-daily.timer
+systemctl disable apt-daily-upgrade.timer
+systemctl disable apt-daily.service
+systemctl disable apt-daily-upgrade.service
+echo "已关闭系统自动更新！"
+}
+
+
 
 
 $@

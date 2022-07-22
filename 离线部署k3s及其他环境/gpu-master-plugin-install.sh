@@ -1,15 +1,13 @@
 #!/bin/sh
 
-
 # 创建nvidia-container-runtime及k3s-gpu-share支持
 
 gpu_support_k3s() {
 
+  tar zxvf tools/nvidia-airgap.tgz -C /
 
-    tar zxvf tools/nvidia-airgap.tgz -C /
-
-    mkdir /etc/kubernetes /etc/nvidia-container-runtime -p
-    cat > /etc/kubernetes/scheduler-policy-config.json <<-EOF
+  mkdir /etc/kubernetes /etc/nvidia-container-runtime -p
+  cat >/etc/kubernetes/scheduler-policy-config.json <<-EOF
 {
   "kind": "Policy",
   "apiVersion": "v1",
@@ -32,9 +30,9 @@ gpu_support_k3s() {
 }
 EOF
 
-# nvidia-container-runtime所需配置
+  # nvidia-container-runtime所需配置
 
-    cat > /etc/nvidia-container-runtime/config.toml <<-EOF
+  cat >/etc/nvidia-container-runtime/config.toml <<-EOF
 disable-require = false
 #swarm-resource = "DOCKER_RESOURCE_GPU"
 #accept-nvidia-visible-devices-envvar-when-unprivileged = true
@@ -55,8 +53,7 @@ ldconfig = "@/sbin/ldconfig.real"
 #debug = "/var/log/nvidia-container-runtime.log"
 EOF
 
-
-    cat > /etc/docker/daemon.json <<-EOF 
+  cat >/etc/docker/daemon.json <<-EOF
 {
 "registry-mirrors": [
     "https://wlzfs4t4.mirror.aliyuncs.com",
@@ -86,27 +83,20 @@ EOF
 }
 EOF
 
-    sed -i '$s#.*#        '\''policy-config-file=/etc/kubernetes/scheduler-policy-config.json'\'' #'   /etc/systemd/system/k3s.service
-
+  sed -i '$s#.*#        '\''policy-config-file=/etc/kubernetes/scheduler-policy-config.json'\'' #' /etc/systemd/system/k3s.service
 
 }
-
 
 install_nvidia_support() {
-    kubectl apply -f manifests/gpushare-schd-extender.yaml
-    sleep 5 && kubectl label node --all gpushare=true && kubectl apply -f manifests/gpushare-device-plugin.yaml && kubectl apply -f manifests/nvidia-device-plugin.yaml
-    cp tools/kubectl-inspect-gpushare /usr/bin/
+  kubectl apply -f manifests/gpushare-schd-extender.yaml
+  sleep 5 && kubectl label node --all gpushare=true && kubectl apply -f manifests/gpushare-device-plugin.yaml && kubectl apply -f manifests/nvidia-device-plugin.yaml
+  cp tools/kubectl-inspect-gpushare /usr/bin/
 }
-
-
-
-
 
 gpu_support_k3s
 
-
 echo "重启k3s环境。"
-systemctl daemon-reload 
+systemctl daemon-reload
 systemctl stop k3s
 systemctl restart docker
 systemctl start k3s
