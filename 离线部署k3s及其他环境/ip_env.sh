@@ -29,4 +29,20 @@ ipip() {
 }
 
 
+auto_command_k8s() {
+
+    if [ -f /usr/share/bash-completion/bash_completion ];then
+        source /usr/share/bash-completion/bash_completion
+
+        echo 'source <(kubectl completion bash)' >> ~/.bashrc
+
+        source ~/.bashrc
+else
+echo "k8s自动补全命令依赖bash-completion，可能未安装！"
+echo "可运行[type _init_completion]测试。"
+
+
+}
+
+
 ipip

@@ -86,13 +86,17 @@ EOF
 }
 EOF
 
+    sed -i '$s#.*#        '\''policy-config-file=/etc/kubernetes/scheduler-policy-config.json'\'' #'   /etc/systemd/system/k3s-agent.service
+    
+
 }
 
 
 install_nvidia_support() {
-    kubectl apply -f manifests/gpushare-schd-extender.yaml
-    sleep 5 && kubectl label node --all gpushare=true && kubectl apply -f manifests/gpushare-device-plugin.yaml && kubectl apply -f manifests/nvidia-device-plugin.yaml
+
+    kubectl label node `hostname` gpushare=true 
     cp tools/kubectl-inspect-gpushare /usr/bin/
+    
 }
 
 
@@ -104,9 +108,9 @@ gpu_support_k3s
 
 echo "重启k3s环境。"
 systemctl daemon-reload 
-systemctl stop k3s
+systemctl stop k3s-agent
 systemctl restart docker
-systemctl start k3s
+systemctl start k3s-agent
 
 echo "添加gpu组件支持。"
 
